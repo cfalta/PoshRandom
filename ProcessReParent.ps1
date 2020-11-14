@@ -1,3 +1,4 @@
+#.NET stub shamelessly copied from the great rasta-mouse https://gist.github.com/rasta-mouse/af009f49229c856dc26e3a243db185ec
 Add-Type -TypeDefinition @"
 using System;
 using System.Diagnostics;
